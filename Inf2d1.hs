@@ -8,6 +8,7 @@ module Inf2d1 where
 import Data.List (sortBy)
 import Debug.Trace
 import TTTGame
+import Data.Ix -- needed for inRange function
 
 gridLength_search::Int
 gridLength_search = 6
@@ -56,7 +57,7 @@ type Branch = [(Int,Int)]
 
 badNodesList::[Node]
 -- This is your list of bad nodes. You should experimet with it to make sure your algorithm covers different cases. 
-badNodesList = []
+badNodesList = [(4,1), (4,2), (4,3), (4,4), (5,4)]
 
 -- The maximum depth this search can reach
 -- TODO: Fill in the maximum depth and justify your choice
@@ -66,6 +67,19 @@ maxDepth=0
 -- YOUR ANSWER GOES HERE
 
 
+-- The getAdjNodes function returns all adjacent nodes of (x,y) inside the 6x6 square
+getAdjNodes::Node -> [Node]
+getAdjNodes (x, y) = [(x, y) | (x,y) <- adjacents, inRange(1,6) x, inRange (1,6) y]
+    where adjacents = [(x+1, y), (x, y+1), (x-1, y), (x, y-1)]
+
+-- The isBadNode function checks if a node is contained in the list of bad nodes
+isBadNode::Node -> Bool
+isBadNode (x, y) = elem (x, y) badNodesList
+
+-- The depth function returns the depth of a current branch. This is needed for depthLimitedSearch function
+depth::Branch -> Int
+depth branch = length branch
+
 -- The next function should return all the possible continuations of input search branch through the grid.
 -- Remember that the robot can only move up, down, left and right, and can't move outside the grid.
 -- The current location of the robot is the head of the input branch.
@@ -74,14 +88,15 @@ maxDepth=0
 
 next::Branch -> [Branch]
 next [] =  []
-next branch = undefined
+next branch = [[nextNode] ++ branch | nextNode <- adjNodes, not (elem nextNode branch), not (isBadNode(nextNode))]
+    where adjNodes = getAdjNodes(head branch)
 
 
 
 -- |The checkArrival function should return true if the current location of the robot is the destination, and false otherwise.
  -- Note that this is the right type declaration for this function. You might have an old version of the Assignment PDF that names this wrongly.
 checkArrival::Node -> Node -> Bool
-checkArrival destination curNode = undefined
+checkArrival destination curNode = (destination == curNode)
 
 
 -- Section 3 Uniformed Search
@@ -89,10 +104,15 @@ checkArrival destination curNode = undefined
 -- The breadthFirstSearch function should use the next function to expand a node,
 -- and the checkArrival function to check whether a node is a destination position.
 -- The function should search nodes using a breadth first search order.
-
 breadthFirstSearch::Node->(Branch -> [Branch])->[Branch]->[Node]->Maybe Branch
-
-breadthFirstSearch destination next branches exploredList =undefined
+breadthFirstSearch destination next branches exploredList
+    | null branches = Nothing
+    | (checkArrival destination currNode) = Just currBranch
+    | elem currNode exploredList = breadthFirstSearch destination next (tail branches) exploredList
+    | otherwise = breadthFirstSearch destination next expandedBranches (currNode:exploredList)
+        where currBranch = head branches
+              currNode = head currBranch
+              expandedBranches = (tail branches) ++ [x | x <- next currBranch, not (elem (head x) exploredList)]
     
 
              
@@ -103,14 +123,27 @@ breadthFirstSearch destination next branches exploredList =undefined
 -- The depthFirstSearch function is similiar to the breadthFirstSearch function,
 -- except it searches nodes in a depth first search order.
 depthFirstSearch::Node->(Branch -> [Branch])->[Branch]-> [Node]-> Maybe Branch
-
-depthFirstSearch destination next branches exploredList =undefined
+depthFirstSearch destination next branches exploredList
+    | null branches = Nothing
+    | (checkArrival destination currNode) = Just currBranch
+    | elem currNode exploredList = depthFirstSearch destination next (tail branches) exploredList
+    | otherwise = depthFirstSearch destination next expandedBranches (currNode:exploredList)
+        where currBranch = head branches
+              currNode = head currBranch
+              expandedBranches = [x | x <- next currBranch, not (elem (head x) exploredList)] ++ (tail branches)
 
 -- | Depth-Limited Search
 -- The depthLimitedSearch function is similiar to the depthFirstSearch function,
 -- except its search is limited to a pre-determined depth, d, in the search tree.
 depthLimitedSearch::Node->(Branch -> [Branch])->[Branch]-> Int-> Maybe Branch
-depthLimitedSearch destination next branches d = undefined
+depthLimitedSearch destination next branches d
+    | null branches = Nothing
+    | (checkArrival destination currNode) = Just currBranch
+    | (depth currBranch == d) = depthLimitedSearch destination next (tail branches) d
+    | otherwise = depthLimitedSearch destination next expandedBranches d
+        where currBranch = head branches
+              currNode = head currBranch
+              expandedBranches = (next currBranch) ++ (tail branches) 
 
 
 -- | Iterative-deepening search
@@ -137,7 +170,7 @@ manhattan position destination = undefined
 bestFirstSearch::Node->(Branch -> [Branch])->(Node->Int)->[Branch]-> [Node]-> Maybe Branch
 bestFirstSearch destination next heuristic branches exploredList=undefined
     
-	
+    
 -- | A* Search
 -- The aStarSearch function is similar to the bestFirstSearch function
 -- except it includes the cost of getting to the state when determining the value of the node.
@@ -145,7 +178,7 @@ bestFirstSearch destination next heuristic branches exploredList=undefined
 aStarSearch::Node->(Branch -> [Branch])->(Node->Int)->(Branch ->Int)->[Branch]-> [Node]-> Maybe Branch
 aStarSearch destination next heuristic cost branches exploredList =undefined
     
-	
+    
 -- | The cost function calculates the current cost of a trace, where each movement from one state to another has a cost of 1.
 cost :: Branch  -> Int
 cost branch = undefined
@@ -173,7 +206,7 @@ eval game =undefined
 
 minimax:: Game->Player->Int
 minimax game player =undefined
-	
+    
 
 -- | The alphabeta function should return the minimax value using alphabeta pruning.
 -- The eval function should be used to get the value of a terminal state. 
@@ -206,20 +239,20 @@ evalWild game =undefined
 alphabetaWild:: Game->Player->Int
 alphabetaWild game player =undefined
     
-	
-	
+    
+    
 -- | End of official assignment. However, if you want to also implement the minimax function to work for Wild Tic Tac Toe you can have a go at it here. This is NOT graded.
 
-		
+        
 -- | The minimaxWild function should return the minimax value of the state (without alphabeta pruning). 
 -- The evalWild function should be used to get the value of a terminal state. 
 
 minimaxWild:: Game->Player->Int
 minimaxWild game player =undefined
-	
+    
 
-			
-			-- | Auxiliary Functions
+            
+            -- | Auxiliary Functions
 -- Include any auxiliary functions you need for your algorithms here.
 -- For each function, state its purpose and comment adequately.
 -- Functions which increase the complexity of the algorithm will not get additional scores
