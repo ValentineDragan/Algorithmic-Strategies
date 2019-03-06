@@ -6,6 +6,7 @@
 module Inf2d1 where
 
 import Data.List (sortBy)
+import Data.Function (on)
 import Debug.Trace
 import TTTGame
 import Data.Ix -- needed for inRange function
@@ -57,28 +58,16 @@ type Branch = [(Int,Int)]
 
 badNodesList::[Node]
 -- This is your list of bad nodes. You should experimet with it to make sure your algorithm covers different cases. 
-badNodesList = [(4,1), (4,2), (4,3), (4,4), (5,4)]
+--badNodesList = [(4,1), (4,2), (4,3), (4,4), (5,4)]
+badNodesList = []
 
 -- The maximum depth this search can reach
 -- TODO: Fill in the maximum depth and justify your choice
 maxDepth::Int
-maxDepth=0
+maxDepth = gridLength_search * gridWidth_search - length badNodesList
 -- Why did you choose this number?
 -- YOUR ANSWER GOES HERE
 
-
--- The getAdjNodes function returns all adjacent nodes of (x,y) inside the 6x6 square
-getAdjNodes::Node -> [Node]
-getAdjNodes (x, y) = [(x, y) | (x,y) <- adjacents, inRange(1,6) x, inRange (1,6) y]
-    where adjacents = [(x+1, y), (x, y+1), (x-1, y), (x, y-1)]
-
--- The isBadNode function checks if a node is contained in the list of bad nodes
-isBadNode::Node -> Bool
-isBadNode (x, y) = elem (x, y) badNodesList
-
--- The depth function returns the depth of a current branch. This is needed for depthLimitedSearch function
-depth::Branch -> Int
-depth branch = length branch
 
 -- The next function should return all the possible continuations of input search branch through the grid.
 -- Remember that the robot can only move up, down, left and right, and can't move outside the grid.
@@ -152,7 +141,11 @@ depthLimitedSearch destination next branches d
 -- This process should be continued until a solution is found.
 -- Each time a solution is not found the depth should be increased.
 iterDeepSearch:: Node-> (Branch -> [Branch])->Node -> Int-> Maybe Branch
-iterDeepSearch destination next initialNode d  =undefined
+iterDeepSearch destination next initialNode d
+    | (d == maxDepth+1) = Nothing
+    | (dlsResult == Nothing) = iterDeepSearch destination next initialNode (d+1)
+    | otherwise = dlsResult
+        where dlsResult = depthLimitedSearch destination next [[initialNode]] d
 
 -- | Section 4: Informed search
 
@@ -160,7 +153,7 @@ iterDeepSearch destination next initialNode d  =undefined
 -- This function should return the manhattan distance between the 'position' point and the 'destination'.
 
 manhattan::Node->Node->Int
-manhattan position destination = undefined
+manhattan position destination = abs (fst position - fst destination) + abs (snd position - snd destination)
 
 -- | Best-First Search
 -- The bestFirstSearch function uses the checkArrival function to check whether a node is a destination position,
@@ -168,7 +161,14 @@ manhattan position destination = undefined
 -- Nodes with a lower heuristic value should be searched before nodes with a higher heuristic value.
 
 bestFirstSearch::Node->(Branch -> [Branch])->(Node->Int)->[Branch]-> [Node]-> Maybe Branch
-bestFirstSearch destination next heuristic branches exploredList=undefined
+bestFirstSearch destination next heuristic branches exploredList
+    | null branches = Nothing
+    | checkArrival destination currNode = Just currBranch
+    | elem currNode exploredList = bestFirstSearch destination next heuristic (tail branches) exploredList
+    | otherwise = bestFirstSearch destination next heuristic expandedBranches (currNode:exploredList)
+    where currBranch = head branches
+          currNode = head currBranch
+          expandedBranches = sortBy (compare `on` (heuristic . head)) (next currBranch ++ tail branches)
     
     
 -- | A* Search
@@ -176,12 +176,19 @@ bestFirstSearch destination next heuristic branches exploredList=undefined
 -- except it includes the cost of getting to the state when determining the value of the node.
 
 aStarSearch::Node->(Branch -> [Branch])->(Node->Int)->(Branch ->Int)->[Branch]-> [Node]-> Maybe Branch
-aStarSearch destination next heuristic cost branches exploredList =undefined
+aStarSearch destination next heuristic cost branches exploredList
+    | null branches = Nothing
+    | checkArrival destination currNode = Just currBranch
+    | elem currNode exploredList = aStarSearch destination next heuristic cost (tail branches) exploredList
+    | otherwise = aStarSearch destination next heuristic cost expandedBranches (currNode:exploredList)
+    where currBranch = head branches
+          currNode = head currBranch
+          expandedBranches = sortBy (compare `on` (aStarHeuristic heuristic cost)) (next currBranch ++ tail branches)
     
     
 -- | The cost function calculates the current cost of a trace, where each movement from one state to another has a cost of 1.
 cost :: Branch  -> Int
-cost branch = undefined
+cost branch = length branch - 1
 
 
 -- | Section 5: Games
@@ -199,7 +206,10 @@ cost branch = undefined
 
 eval :: Game -> Int
 -- simply checks if player 1 has won, and if so returns 1, else check for player 0 and if so returns -1, else returns 0 as draw
-eval game =undefined
+eval game
+    | checkWin game 1 = 1
+    | checkWin game 0 = -1
+    | otherwise = 0
 
 -- | The minimax function should return the minimax value of the state (without alphabeta pruning).
 -- The eval function should be used to get the value of a terminal state. 
@@ -259,3 +269,20 @@ minimaxWild game player =undefined
  
 
 
+-- The getAdjNodes function returns all adjacent nodes of (x,y) inside the 6x6 square
+getAdjNodes::Node -> [Node]
+getAdjNodes (x, y) = [(x, y) | (x,y) <- adjacents, inRange(1,6) x, inRange (1,6) y]
+    where adjacents = [(x+1, y), (x, y+1), (x-1, y), (x, y-1)]
+
+-- The isBadNode function checks if a node is contained in the list of bad nodes
+isBadNode::Node -> Bool
+isBadNode (x, y) = elem (x, y) badNodesList
+
+-- The depth function returns the depth of a current branch. This is needed for depthLimitedSearch function
+depth::Branch -> Int
+depth branch = length branch
+
+-- The aStarHeuristic function returns the value of a node in aStarSearch, by adding up the cost of the branch and the node heuristic
+aStarHeuristic::(Node->Int)->(Branch ->Int)->Branch->Int
+aStarHeuristic heuristic cost branch = (heuristic node) + cost branch
+    where node = head branch
