@@ -215,16 +215,135 @@ eval game
 -- The eval function should be used to get the value of a terminal state. 
 
 minimax:: Game->Player->Int
-minimax game player =undefined
-    
+minimax game player
+    | terminal game = eval game
+    | player == 1 = maxvalue game player
+    | player == 0 = minvalue game player
+
+minvalue::Game->Player->Int
+minvalue game player
+    | terminal game = eval game
+    | otherwise = minimum [maxvalue g (switch player) | g <- moves game player]
+
+maxvalue::Game->Player->Int
+maxvalue game player
+    | terminal game = eval game
+    | otherwise = maximum [minvalue g (switch player) | g <- moves game player]
 
 -- | The alphabeta function should return the minimax value using alphabeta pruning.
 -- The eval function should be used to get the value of a terminal state. 
 
 alphabeta:: Game->Player->Int
-alphabeta game player =undefined
-    
+alphabeta game player
+    | player == 1 = abMaxValue game player (-2) 2
+    | player == 0 = abMinValue game player (-2) 2
 
+abMaxValue::Game->Player->Int->Int->Int
+abMaxValue game player alpha beta
+    | terminal game = eval game
+    | otherwise = foldl max (-2) (abMaxList (moves game player) (switch player) alpha beta)
+
+abMinValue::Game->Player->Int->Int->Int
+abMinValue game player alpha beta
+    | terminal game = eval game
+    | otherwise = foldl min 2 (abMinList (moves game player) (switch player) alpha beta)
+
+abMaxList::[Game]->Player->Int->Int->[Int]
+abMaxList [] player alpha beta = []
+abMaxList (g:games) player alpha beta
+    | currentValue >= beta = [currentValue]
+    | otherwise = [currentValue] ++ abMaxList games player bestAlpha beta
+        where currentValue = abMinValue g player alpha beta
+              bestAlpha = max alpha currentValue
+
+abMinList::[Game]->Player->Int->Int->[Int]
+abMinList [] player alpha beta = []
+abMinList (g:games) player alpha beta
+    | currentValue <= alpha = [currentValue]
+    | otherwise = [currentValue] ++ abMinList games player alpha bestBeta
+        where currentValue = abMaxValue g player alpha beta
+              bestBeta = min beta currentValue
+
+
+{-    
+alphabeta:: Game->Player->Int
+alphabeta game player
+    | player == 1 = abMaxValue game player (-2) 2
+    | player == 0 = abMinValue game player (-2) 2
+
+abMaxValue::Game->Player->Int->Int->Int
+abMaxValue game player alpha beta
+    | terminal game = eval game
+    | otherwise = foldl max (-2) (abMinList (moves game player) (switch player) alpha beta)
+
+abMinValue::Game->Player->Int->Int->Int
+abMinValue game player alpha beta
+    | terminal game = eval game
+    | otherwise = foldl min 2 (abMaxList (moves game player) (switch player) alpha beta)
+
+abMaxList::[Game]->Player->Int->Int->[Int]
+abMaxList [] player alpha beta = []
+abMaxList (g:games) player alpha beta
+    | currentValue >= beta = [currentValue]
+    | otherwise = [currentValue] ++ abMaxList games player bestAlpha beta
+        where currentValue = abMinValue g (switch player) alpha beta
+              bestAlpha = max alpha currentValue
+
+abMinList::[Game]->Player->Int->Int->[Int]
+abMinList [] player alpha beta = []
+abMinList (g:games) player alpha beta
+    | currentValue <= alpha = [currentValue]
+    | otherwise = [currentValue] ++ abMinList games player alpha bestBeta
+        where currentValue = abMaxValue g (switch player) alpha beta
+              bestBeta = min beta currentValue
+
+
+pruneListMin::[Game]->Int->Int->[Int]
+pruneListMin [] alpha beta = []
+pruneListMin (game:games) alpha beta
+    | currentValue <= alpha = currentValue
+    | otherwise = [currentValue] ++ pruneListMin games alpha (min beta currentValue)
+        where currentValue = alphabeta game player alpha beta
+
+pruneListMax::[Game]->Int->Int->[Int]
+pruneListMax [] alpha beta = []
+pruneListMax (game:games) alpha beta
+    | currentValue >= beta = currentValue
+    | otherwise = [currentValue] ++ pruneListMax games (max alpha currentValue) beta
+        where currentValue = alphabeta game player alpha beta
+
+
+abminvalue::Game->Player->Int->Int->Int
+abminvalue game player alpha beta
+    | terminal game = eval game
+    | otherwise do
+                let v = 
+    = minimum [v | g <- moves game player, let v = abmaxvalue g (switch player) alpha beta
+
+abminvalue::Game->Player->Int->Int->Int
+abminvalue game player alpha beta
+    | terminal game = eval game
+    | otherwise = foldl min 2 [x | g <- takeWhile (>alpha) (moves game player), x = abmaxvalue g (switch player) alpha beta]
+    | otherwise = foldl min 2 (pruneList (moves game player) alpha beta)
+    pruneList::[Game]->Int->Int->[Int]
+    pruneList [] alpha beta = []
+    pruneList (game:games) alpha beta
+        | currentValue <= alpha = currentValue
+        | otherwise = [currentValue] ++ pruneList games alpha (min beta currentValue)
+            where currentValue = abmaxvalue game player alpha beta
+
+    | otherwise = foldl f 
+        where updatedList []
+        where b = min b val
+        where bestVal' = min bestVal val
+    | otherwise = myf
+
+bestMinValue::[Game]->Player->Int->Int->Int
+bestMinValue (x:xs) player alpha beta
+    | null xs = bestMaxValue alpha beta
+    | currentValue <= alpha = currentValue
+    | otherwise = min currentValue 
+-}
 -- | Section 5.2 Wild Tic Tac Toe
 
 
