@@ -1,4 +1,4 @@
-# Algorithmic Searches
+# Algorithmic Strategies
 
 This project was developed for the **Reasoning and Agents course** at The University of Edinburgh. The project contains the implementation of Strategies & Algorithms used by AI Agents in decision-making processes.
 
